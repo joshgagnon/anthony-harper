@@ -1,6 +1,6 @@
 {
     "apps" : [{
-        "name": "jasons-formal",
+        "name": "anthony-harper",
         "script": "server.js",
         "env": {
             "NODE_ENV": "production",

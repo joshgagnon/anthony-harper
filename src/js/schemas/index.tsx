@@ -1,6 +1,6 @@
 import { prepareSchema, getValidate } from 'json-schemer';
 import merge from 'deepmerge';
-const gc = require.context('good-companies-templates/schemas');
+const schemas = require.context('anthony-harper-templates/schemas');
 
 function loadAll(context: any) : {[key: string] : any}{
     const definitions = context('./definitions');
@@ -25,9 +25,9 @@ function loadAll(context: any) : {[key: string] : any}{
 
 
 const templateSchemas : Jason.TemplateSchemas = {
-    'Good Companies': {
-        schemas: loadAll(gc),
-        name: 'gc'
+    'Anthony Harper': {
+        schemas: loadAll(schemas),
+        name: 'Anthony Harper'
     }
 }
 

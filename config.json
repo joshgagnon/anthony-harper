@@ -1,0 +1,4 @@
+{
+    "server_port": 3453,
+    "oddity_url": "http://localhost:5771/render"
+}

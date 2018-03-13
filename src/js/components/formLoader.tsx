@@ -418,7 +418,7 @@ export class UnconnectedPreview extends React.PureComponent<PreviewProps> {
     render() {
         return <div className="preview">
             <div className="button-row">
-            <Button bsStyle="info" onClick={this.submit}>Render</Button>
+            <Button bsStyle="info" onClick={this.submit}>Load Preview</Button>
             </div>
             <PDFPreview />
         </div>
@@ -501,7 +501,7 @@ const SchemaFieldWithCategory = formValues<any>('category')(SchemaField);
 export class FormLoader extends React.PureComponent<InjectedFormProps> {
     render() {
         return <div>
-        <h1 className="text-center">Template Playground</h1>
+        <h1 className="text-center"><img src="logo.png"/></h1>
         <Grid>
         <Form  horizontal>
             <FormGroup controlId="formControlsSelect">

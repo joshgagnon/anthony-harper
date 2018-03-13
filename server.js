@@ -3,6 +3,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
 
+var Promise = require("bluebird");
+var fs = Promise.promisifyAll(require("fs"));
+var config;
+
+
 function checkStatus(response) {
   if (response.status >= 200 && response.status <= 304) {
     return response
@@ -13,9 +18,8 @@ function checkStatus(response) {
   }
 }
 
-const url = 'https://oddity.catalex.nz/render';
 
-const render  = (values) => fetch(url, {
+const render  = (values) => fetch(config.oddity_url, {
           method: 'POST',
           headers: {
             'Accept': 'application/json',
@@ -51,4 +55,11 @@ app.post('/api/render', function (req, res) {
         })
 })
 
-app.listen(3453, () => console.log('App Started'));
+const PORT = 3453;
+
+fs.readFileAsync(process.argv[2] || 'config.json', 'utf8')
+    .then(function(_config) {
+        config = JSON.parse(_config);
+        app.listen(config.server_port, () => console.log('App Started on: ',config.server_port));
+    });
+
