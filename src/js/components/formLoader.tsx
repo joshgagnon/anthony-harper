@@ -3,25 +3,30 @@ import { reduxForm, InjectedFormProps, Field, WrappedFieldProps, formValues, For
 import { connect } from 'react-redux';
 import templateSchemas from '../schemas';
 import { FormGroup, ControlLabel, FormControl, Form, Col, Grid, Tabs, Tab, Button, Glyphicon, ProgressBar } from 'react-bootstrap';
-import { componentType, getKey, addItem, setDefaults, getValidate } from 'json-schemer';
+import { componentType, getKey, addItem, setDefaults, getValidate, controlStyle, formatString } from 'json-schemer';
 import FlipMove from 'react-flip-move';
 import { render } from '../actions';
 import PDF from 'react-pdf-component/lib/react-pdf';
 import Loading from './loading';
+import * as DateTimePicker from 'react-widgets/lib/DateTimePicker'
 
+const INITIAL_VALUES = require('anthony-harper-templates/test_data/AEC-250770-98-449-1 LOE 2018 for Catalex/simple.json');
+
+console.log(INITIAL_VALUES)
 type SelectorType = (state: any, ...field: string[]) => any;
 
 interface FormSetProps {
     schema: Jason.Schema,
     subSchema?: Jason.Schema
     name?: string,
+    index?: number,
     selector: SelectorType
 }
 
 
 class UnconnectedFormSet extends React.PureComponent<FormSetProps> {
     render() {
-        const { schema, subSchema, selector } = this.props;
+        const { schema, subSchema, selector, index } = this.props;
         const { properties, title } = schema;
         const schemaProps = properties;
 
@@ -29,7 +34,7 @@ class UnconnectedFormSet extends React.PureComponent<FormSetProps> {
             <fieldset>
              { title && <legend>{title}</legend>}
                 { Object.keys(schemaProps).map((key, i) => {
-                    return <RenderField key={i} field={schemaProps[key]} name={key} selector={selector}/>
+                    return <RenderField key={i} field={schemaProps[key]} name={key} selector={selector} index={index}/>
                 }) }
                 { subSchema && <FormSet schema={subSchema} name={this.props.name} selector={selector} /> }
             </fieldset>
@@ -66,18 +71,18 @@ const FormSet = connect<{}, {}, FormSetProps>((state: Jason.State, ownProps: For
 })(UnconnectedFormSet as any);
 
 
-class RenderField extends React.PureComponent<{field: any, name: string, selector: (name: any) => any}> {
+class RenderField extends React.PureComponent<{field: any, name: string, index?: number, selector: (name: any) => any}> {
     render() : false | JSX.Element {
-        const { name, field, selector } = this.props;
-        const title = field.title;
+        const { name, field, selector, index } = this.props;
+        const title = field.enumeratedTitle ? formatString(field.enumeratedTitle, index+1) : field.title;
         switch(field.type){
             case 'object': {
                 return <FormSection name={name}>
-                        <FormSet schema={(this.props.field as Jason.Schema)} name={name} selector={selector}/>
+                        <FormSet schema={(this.props.field as Jason.Schema)} name={name} selector={selector} index={index}/>
                     </FormSection>
             }
             case 'array': {
-                return <FieldArray name={name} component={FieldsArray} props={{field: field.items, title: field.title, selector}} />
+                return <FieldArray name={name} component={FieldsArray} props={{field: field.items, title: field.title, selector, index}} />
             }
             case 'string': {
                 const subType = componentType(field);
@@ -159,8 +164,8 @@ class RemoveButton extends React.PureComponent<any>{
 
 class ListItemControls extends React.PureComponent<any> {
     render() {
-        const { index, numItems, fields: { swap, remove }} = this.props;
-        return <div className="btn-group-vertical btn-group-xs" style={{position: 'absolute', right: 0, top: 0}}>
+        const { index, numItems,inline, fields: { swap, remove }} = this.props;
+        return <div className={`${inline ? 'btn-group' : 'btn-group-vertical'} btn-group-xs`} style={{position: 'absolute', right: 0, top: 0}}>
             <MoveUpButton key={0} index={index} swapFields={swap} numItems={numItems} forceDisplay={true} />
             <MoveDownButton key={1} index={index} swapFields={swap} numItems={numItems} forceDisplay={true} />
             <RemoveButton key={2} index={index} removeField={remove} numItems={numItems} forceDisplay={true} />
@@ -173,44 +178,29 @@ class ListItemControls extends React.PureComponent<any> {
 class FieldsArray extends React.PureComponent<any> {
     render() {
         const { fields, field, title, selector } = this.props;
+        const inline = controlStyle(field) === 'inline';
         return <fieldset className="list">
             { title && <legend>{ title }</legend>}
             <FlipMove duration={250} easing="ease-out">
             { fields.map((name: any, index: number) => {
                 return <div key={fields.get(index)._keyIndex}>
-                    <div style={{position: 'relative', minHeight: 70}}>
-                    <RenderField  name={name} field={field} selector={selector} />
-                    <ListItemControls fields={fields} index={index} numItems={fields.length} name={name}/>
+                    <div style={{position: 'relative', minHeight: inline ? 0 : 70}}>
+                    <RenderField  name={name} field={field} selector={selector} index={index} />
+                    <ListItemControls fields={fields} index={index} numItems={fields.length} name={name} inline={inline}/>
                     </div>
-                    </div>
+                </div>
             }) }
             </FlipMove>
             <div className="text-center">
-            <Button onClick={() => fields.push({_keyIndex: getKey()})}>
-            { addItem(field) }
-          </Button>
+                <Button onClick={() => fields.push({_keyIndex: getKey()})}>
+                    { addItem(field) }
+              </Button>
           </div>
             </fieldset>
         }
 }
 
 
-
-
-function FieldRowxx(props: {title: string, name: string, component: any, children? : any}) : JSX.Element {
-    const { title, name, component, children } = props;
-    return <FormGroup>
-        <Col sm={3} className="text-right">
-            <ControlLabel>{ title }</ControlLabel>
-        </Col>
-        <Col sm={7}>
-            <Field name={ name } component={component as any} props={{title: title}}>
-                { children }
-            </Field>
-            <FormControl.Feedback />
-        </Col>
-    </FormGroup>
-}
 
 
 function FieldRow(Component: any) : any {
@@ -274,7 +264,7 @@ class FormView extends React.PureComponent<{schema: Jason.Schema, name: string, 
                 form={this.props.name}
                 key={this.props.name}
                 validate={this.props.validate}
-                initialValues={setDefaults(this.props.schema, {}, {})}
+                initialValues={setDefaults(this.props.schema, {}, INITIAL_VALUES)}
                 />
         </div>
     }
@@ -533,6 +523,6 @@ export class FormLoader extends React.PureComponent<InjectedFormProps> {
 
 
 export default reduxForm<{}>({
-    form: 'formLoader',
+    form: 'formLoader'
 })(FormLoader);
 
