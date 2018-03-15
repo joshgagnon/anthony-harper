@@ -9,6 +9,12 @@ import { render } from '../actions';
 import PDF from 'react-pdf-component/lib/react-pdf';
 import Loading from './loading';
 import * as DateTimePicker from 'react-widgets/lib/DateTimePicker'
+import * as moment from 'moment';
+
+
+function isCheckbox(enums : (string | boolean)[]) {
+    return enums.length === 2 && ((enums[0] === false && enums[1] === true) || (enums[1] === false && enums[0] === true));
+}
 
 const INITIAL_VALUES = require('anthony-harper-templates/test_data/AEC-250770-98-449-1 LOE 2018 for Catalex/simple.json');
 
@@ -26,7 +32,7 @@ interface FormSetProps {
 
 class UnconnectedFormSet extends React.PureComponent<FormSetProps> {
     render() {
-        const { schema, subSchema, selector, index } = this.props;
+        const { schema, subSchema, selector, index, name } = this.props;
         const { properties, title } = schema;
         const schemaProps = properties;
 
@@ -34,7 +40,7 @@ class UnconnectedFormSet extends React.PureComponent<FormSetProps> {
             <fieldset>
              { title && <legend>{title}</legend>}
                 { Object.keys(schemaProps).map((key, i) => {
-                    return <RenderField key={i} field={schemaProps[key]} name={key} selector={selector} index={index}/>
+                    return <RenderField key={i} field={schemaProps[key]} name={key} selector={selector} index={index} parentName={name}/>
                 }) }
                 { subSchema && <FormSet schema={subSchema} name={this.props.name} selector={selector} /> }
             </fieldset>
@@ -57,6 +63,7 @@ const FormSet = connect<{}, {}, FormSetProps>((state: Jason.State, ownProps: For
         });
         if(selectKey){
             const value = (ownProps.selector(state, ownProps.name) || {})[selectKey];
+            console.log(selectKey, value, ownProps.name, ownProps.selector(state, ownProps.name))
             if(value){
                 return {
                     subSchema: getMatchingOneOf(ownProps.schema.oneOf, value, selectKey)
@@ -71,14 +78,15 @@ const FormSet = connect<{}, {}, FormSetProps>((state: Jason.State, ownProps: For
 })(UnconnectedFormSet as any);
 
 
-class RenderField extends React.PureComponent<{field: any, name: string, index?: number, selector: (name: any) => any}> {
+class RenderField extends React.PureComponent<{field: any, name: string, index?: number, parentName?: string, selector: (name: any) => any}> {
     render() : false | JSX.Element {
         const { name, field, selector, index } = this.props;
         const title = field.enumeratedTitle ? formatString(field.enumeratedTitle, index+1) : field.title;
         switch(field.type){
             case 'object': {
+                const deepName = this.props.parentName ? `${this.props.parentName}.${name}` : name;
                 return <FormSection name={name}>
-                        <FormSet schema={(this.props.field as Jason.Schema)} name={name} selector={selector} index={index}/>
+                        <FormSet schema={(this.props.field as Jason.Schema)} name={deepName} selector={selector} index={index}/>
                     </FormSection>
             }
             case 'array': {
@@ -89,13 +97,19 @@ class RenderField extends React.PureComponent<{field: any, name: string, index?:
                 switch(subType){
                     case 'textarea':
                         return <Field title={title} name={name} component={TextAreaFieldRow} />
+                    case 'date':
+                        return <Field title={title} name={name} component={DateFieldRow} formatDate={field.formatDate}/>
                     default:
                         return <Field title={title} name={name} component={TextFieldRow} />
                 }
             }
             case undefined: {
                 // the > 1 check is a easy way to not render the oneOf match structures (causes a duplication of the field)
+
                 if(field.enum && field.enum.length > 1){
+                    if(isCheckbox(field.enum)){
+                        return <Field title={title} name={name} component={CheckboxFieldRow} />
+                    }
                     return <Field title={title} name={name} component={SelectFieldRow}>
                          <option value="" disabled>Please Select...</option>
                         { field.enum.map((f: string, i: number) => {
@@ -358,6 +372,8 @@ export class UnconnectedPDFPreview extends React.PureComponent<PDFPreviewProps> 
     render() {
         if(this.props.downloadStatus === Jason.DownloadStatus.InProgress)
             return <Loading />
+        if(this.props.downloadStatus === Jason.DownloadStatus.Failed)
+            return <div className="alert alert-danger">Could not generate document</div>
         if(this.props.downloadStatus === Jason.DownloadStatus.Complete)
             return <PDF data={this.props.data} scale={2.5} noPDFMsg=' '/>
         return false;
@@ -450,11 +466,36 @@ export class TemplateViews extends React.PureComponent<{category: string, schema
 
 const InjectedTemplateViews = formValues<any>('category', 'schema')(TemplateViews);
 
+class RenderDateTimePicker extends React.PureComponent<WrappedFieldProps & {formatDate: string}> {
+    render() {
+
+        const  { input: { onChange, value }, formatDate} = this.props;
+        const readFormats = [formatDate, "D M YYYY", "D MMM YYYY", "D/M/YYYY", "D-M-YYYY", "D MMMM YYYY"];
+        return   <DateTimePicker
+            onChange={(date, string) => formatDate ? onChange(string) :  onChange(date)}
+            parse={(string) => {
+                const mo = moment(string, readFormats)
+                return mo.isValid() ? mo.toDate() : null;
+                }
+            }
+            format={this.props.formatDate}
+            time={false}
+            value={!value ? null : new Date(value)}
+          />
+    }
+}
+
 class SelectField extends React.PureComponent<WrappedFieldProps> {
     render() {
         return <FormControl {...this.props.input} componentClass="select">
             { this.props.children }
         </FormControl>
+    }
+}
+
+class CheckboxField extends React.PureComponent<WrappedFieldProps> {
+    render() {
+        return <FormControl {...this.props.input} componentClass={'input'} type="checkbox" className="checkbox" />
     }
 }
 
@@ -470,9 +511,17 @@ class TextAreaField extends React.PureComponent<WrappedFieldProps> {
     }
 }
 
+class DateField extends React.PureComponent<WrappedFieldProps> {
+    render() {
+        return <FormControl {...this.props} componentClass={RenderDateTimePicker}  />
+    }
+}
+
 const SelectFieldRow = FieldRow(SelectField);
 const TextFieldRow = FieldRow(TextField);
 const TextAreaFieldRow = FieldRow(TextAreaField);
+const DateFieldRow = FieldRow(DateField);
+const CheckboxFieldRow = FieldRow(CheckboxField);
 
 
 class SchemaField extends React.PureComponent<WrappedFieldProps & {category: string}> {

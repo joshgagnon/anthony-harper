@@ -28,7 +28,9 @@ function *renderSaga() {
             }));
 
         } catch(e) {
-
+            yield put(updateRender({
+                downloadStatus: Jason.DownloadStatus.Failed,
+            }));
         }
     }
 

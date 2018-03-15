@@ -1,6 +1,8 @@
 import * as React from "react";
 import FormLoader from './formLoader';
-
+import * as moment from 'moment';
+import * as momentLocalizer from 'react-widgets-moment';
+momentLocalizer(moment);
 
 export class App extends React.PureComponent<{}> {
     render() {

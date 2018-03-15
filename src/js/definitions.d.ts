@@ -114,3 +114,10 @@ declare module 'react-pdf-component/lib/react-pdf' {
 
     }
 }
+
+declare module 'react-widgets-moment' {
+    function momentLocalizer(moment : any): void;
+    namespace momentLocalizer {}
+    export = momentLocalizer;
+}
+
