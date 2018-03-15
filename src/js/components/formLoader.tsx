@@ -18,7 +18,6 @@ function isCheckbox(enums : (string | boolean)[]) {
 
 const INITIAL_VALUES = require('anthony-harper-templates/test_data/AEC-250770-98-449-1 LOE 2018 for Catalex/simple.json');
 
-console.log(INITIAL_VALUES)
 type SelectorType = (state: any, ...field: string[]) => any;
 
 interface FormSetProps {
@@ -63,7 +62,6 @@ const FormSet = connect<{}, {}, FormSetProps>((state: Jason.State, ownProps: For
         });
         if(selectKey){
             const value = (ownProps.selector(state, ownProps.name) || {})[selectKey];
-            console.log(selectKey, value, ownProps.name, ownProps.selector(state, ownProps.name))
             if(value){
                 return {
                     subSchema: getMatchingOneOf(ownProps.schema.oneOf, value, selectKey)
