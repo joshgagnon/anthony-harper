@@ -162,7 +162,7 @@ ansi-styles@^3.2.1:
   dependencies:
     color-convert "^1.9.0"
 
-"anthony-harper-templates@github:joshgagnon/anthony-harper-templates", "el-templates@github:joshgagnon/anthony-harper-templates":
+"anthony-harper-templates@github:joshgagnon/anthony-harper-templates":
   version "1.0.0"
   resolved "https://codeload.github.com/joshgagnon/anthony-harper-templates/tar.gz/b2f5c5e9fec2119d14633ce153801b9dd038443c"
 
