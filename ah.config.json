@@ -3,7 +3,7 @@
         "name": "anthony-harper",
         "script": "server.js",
         "env": {
-            "NODE_ENV": "production",
+            "NODE_ENV": "production"
         }
     }]
 }
