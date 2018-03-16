@@ -467,9 +467,10 @@ const InjectedTemplateViews = formValues<any>('category', 'schema')(TemplateView
 class RenderDateTimePicker extends React.PureComponent<WrappedFieldProps & {formatDate: string}> {
     render() {
 
-        const  { input: { onChange, value }, formatDate} = this.props;
+        const  { input: { onChange, value, onBlur }, formatDate} = this.props;
         const readFormats = [formatDate, "D M YYYY", "D MMM YYYY", "D/M/YYYY", "D-M-YYYY", "D MMMM YYYY"];
         return   <DateTimePicker
+            onBlur={() => onBlur(undefined)}
             onChange={(date, string) => formatDate ? onChange(string) :  onChange(date)}
             parse={(string) => {
                 const mo = moment(string, readFormats)
@@ -511,7 +512,7 @@ class TextAreaField extends React.PureComponent<WrappedFieldProps> {
 
 class DateField extends React.PureComponent<WrappedFieldProps> {
     render() {
-        return <FormControl {...this.props} componentClass={RenderDateTimePicker}  />
+        return <FormControl {...this.props} {...this.props.input}  componentClass={RenderDateTimePicker}  />
     }
 }
 
