@@ -13,6 +13,16 @@ $icon-font-path: "~bootstrap-sass/assets/fonts/bootstrap/";
 @import "~bootstrap-sass/assets/stylesheets/bootstrap/modals";
 @import "~bootstrap-sass/assets/stylesheets/bootstrap/tables";
 @import "~bootstrap-sass/assets/stylesheets/bootstrap/close";
+
+
+$brand-primary: #435b4c;
+$navbar-default-bg: #435b4c;
+ $navbar-default-border: #435b4c;
+$navbar-default-color: white;
+$navbar-default-link-color: white;
+$navbar-border-radius: 0;
+
+
 @import "~bootstrap-sass/assets/stylesheets/bootstrap/navs";
 @import "~bootstrap-sass/assets/stylesheets/bootstrap/popovers";
 @import "~bootstrap-sass/assets/stylesheets/bootstrap/input-groups";
@@ -29,6 +39,7 @@ $icon-font-path: "~bootstrap-sass/assets/fonts/bootstrap/";
 $font-path: '~react-widgets/lib/fonts';
 $img-path: '~react-widgets/lib/img';
 @import "~react-widgets/lib/scss/react-widgets";
+
 
 
 @import "loading";
@@ -52,8 +63,71 @@ html {
 .button-row{
     text-align:center;
     margin: 1em 0;
+    button {
+        margin: 0 4px;
+    }
 }
 
 input.checkbox.form-control {
     box-shadow: none;
 }
+
+.actionable {
+    cursor: pointer;
+}
+.icon-action-page{
+    .select-button {
+        @extend .col-sm-6;
+        display: block;
+        padding: 10px;
+        font-size: 10px;
+        line-height: 1.4;
+        text-align: center;
+        background-color: $gray-lighter;
+        border: 8px solid #fff;;
+        border-radius:4px;
+        &.disabled{
+            color: #ccc;
+        }
+        &.actionable:hover{
+            background-color: $brand-primary;
+            color:white;
+            transition: background-color 0.5s ease,
+                        color 0.5s ease;
+        }
+        .glyphicon, .fa {
+            margin-top: 16px;
+            margin-bottom: 10px;
+            font-size: 50px;
+        }
+        .transaction-button-text{
+            display: block;
+            text-align: center;
+            word-wrap: break-word;
+            font-size:16px;
+        }
+    }
+}
+
+.icon-action-page:after{
+    clear:both;
+    content: " ";
+    display: table;
+}
+
+.icon-action-page-sml{
+    .glyphicon, .fa {
+        margin-right:10px;
+        margin-left:10px;
+        margin-bottom:4px;
+        font-size: 24px;
+        vertical-align: middle;
+        width: 25px;
+        text-align: center;
+    }
+    .transaction-button-text{
+        vertical-align: middle;
+        line-height: 24px;
+    }
+}
+

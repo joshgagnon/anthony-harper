@@ -2,42 +2,43 @@ import * as React from "react";
 import { reduxForm, InjectedFormProps, Field, WrappedFieldProps, formValues, FormSection, FieldArray, formValueSelector, getFormValues } from 'redux-form';
 import { connect } from 'react-redux';
 import templateSchemas from '../schemas';
-import { FormGroup, ControlLabel, FormControl, Form, Col, Grid, Tabs, Tab, Button, Glyphicon, ProgressBar } from 'react-bootstrap';
+import { FormGroup, ControlLabel, FormControl, Form, Col, Grid, Tabs, Tab, Button, Glyphicon, ProgressBar, ToggleButtonGroup } from 'react-bootstrap';
 import { componentType, getKey, addItem, setDefaults, getValidate, controlStyle, formatString } from 'json-schemer';
 import FlipMove from 'react-flip-move';
-import { render } from '../actions';
+import { render, showPreview, showComplete } from '../actions';
 import PDF from 'react-pdf-component/lib/react-pdf';
 import Loading from './loading';
 import * as DateTimePicker from 'react-widgets/lib/DateTimePicker'
 import * as moment from 'moment';
 
+export const required = (value : any) => (value ? undefined : 'Required')
 
 function isCheckbox(enums : (string | boolean)[]) {
     return enums.length === 2 && ((enums[0] === false && enums[1] === true) || (enums[1] === false && enums[0] === true));
 }
 
-const INITIAL_VALUES = require('anthony-harper-templates/test_data/AEC-250770-98-449-1 LOE 2018 for Catalex/simple.json');
+const INITIAL_VALUES = {};
 
-type SelectorType = (state: any, ...field: string[]) => any;
 
 interface FormSetProps {
     schema: Jason.Schema,
-    subSchema?: Jason.Schema
+    subSchema?: Jason.Schema,
+    showTitle?: boolean,
     name?: string,
     index?: number,
-    selector: SelectorType
+    selector: Jason.SelectorType
 }
 
 
 class UnconnectedFormSet extends React.PureComponent<FormSetProps> {
     render() {
-        const { schema, subSchema, selector, index, name } = this.props;
+        const { schema, subSchema, selector, index, name, showTitle } = this.props;
         const { properties, title } = schema;
         const schemaProps = properties;
 
         return (
             <fieldset>
-             { title && <legend>{title}</legend>}
+             { title && showTitle !== false && <legend>{title}</legend>}
                 { Object.keys(schemaProps).map((key, i) => {
                     return <RenderField key={i} field={schemaProps[key]} name={key} selector={selector} index={index} parentName={name}/>
                 }) }
@@ -231,7 +232,7 @@ function FieldRow(Component: any) : any {
                 <Col sm={3} className="text-right">
                     <ControlLabel>{ props.title }</ControlLabel>
                 </Col>
-                <Col sm={7}>
+                <Col sm={9}>
                      <Component {...props} />
                     <FormControl.Feedback />
                 </Col>
@@ -248,7 +249,7 @@ class RenderForm extends React.PureComponent<InjectedFormProps & {schema: Jason.
         const { schema } = this.props;
         return <Form horizontal>
             <p/>
-                <FormSet schema={schema} selector={formValueSelector(this.props.form)} />
+                <FormSet schema={schema} selector={formValueSelector(this.props.form)} showTitle={false}/>
                 { this.props.error && <div className="alert alert-danger">
                 { this.props.error }
                 </div> }
@@ -298,7 +299,9 @@ function getSubSchema(schema: Jason.Schema, stepIndex: number) : Jason.Schema {
 interface WizardViewProps {
     schema: Jason.Schema,
     name: string,
-    validate: Jason.Validate
+    validate: Jason.Validate,
+    showPreview: () => void;
+    showComplete: () => void;
 }
 
 
@@ -308,6 +311,7 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
         super(props);
         this.nextStep = this.nextStep.bind(this);
         this.prevStep = this.prevStep.bind(this);
+        this.finish = this.finish.bind(this);
         this.state = {step: 0}
     }
 
@@ -323,6 +327,10 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
         if(!this.lastStep()){
             this.setState({step: this.state.step+1})
         }
+    }
+
+    finish() {
+        this.props.showComplete()
     }
 
     prevStep() {
@@ -351,99 +359,25 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
 
             <div className="button-row">
                 { !this.firstStep() && <Button onClick={this.prevStep}>Back</Button> }
-                { !this.lastStep() && <Button onClick={this.nextStep}>Next</Button> }
+                { !this.lastStep() && <Button bsStyle={'success'} onClick={this.nextStep}>Next</Button> }
+                { (this.lastStep() || true) && <Button bsStyle={'success'} onClick={this.finish}>Finish</Button> }
+                { <Button bsStyle={'info'} onClick={this.props.showPreview}>Preview</Button> }
             </div>
         </div>
     }
 }
 
-interface UnconnectedPDFPreviewProps {
-
-}
-
-interface PDFPreviewProps extends UnconnectedPDFPreviewProps {
-    data?: any;
-    downloadStatus: Jason.DownloadStatus
-}
-
-export class UnconnectedPDFPreview extends React.PureComponent<PDFPreviewProps> {
-    render() {
-        if(this.props.downloadStatus === Jason.DownloadStatus.InProgress)
-            return <Loading />
-        if(this.props.downloadStatus === Jason.DownloadStatus.Failed)
-            return <div className="alert alert-danger">Could not generate document</div>
-        if(this.props.downloadStatus === Jason.DownloadStatus.Complete)
-            return <PDF data={this.props.data} scale={2.5} noPDFMsg=' '/>
-        return false;
-    }
-}
-
-const PDFPreview = connect((state : Jason.State, ownProps) => ({
-    data: state.document.data,
-    downloadStatus: state.document.downloadStatus
-}))(UnconnectedPDFPreview as any);
-
-interface UnconnectedPreviewProps {
-   category: string,
-   schemaName: string,
-   form: string,
-   selector: SelectorType
-}
-
-interface PreviewProps extends UnconnectedPreviewProps {
-     render: (data: Jason.Actions.RenderPayload) => void,
-     getValues: () => any,
-}
-
-export class UnconnectedPreview extends React.PureComponent<PreviewProps> {
-
-    constructor(props: PreviewProps) {
-        super(props);
-        this.submit = this.submit.bind(this);
-    }
-
-    buildRenderObject(values : any, metadata = {}) {
-        const type = templateSchemas[this.props.category].schemas[this.props.schemaName];
-        const schema = type.schema;
-        const filename = schema.title;
-        return {
-            formName: schema.formName,
-            templateTitle: schema.title,
-            values: {...values, filename},
-            metadata,
-            env: templateSchemas[this.props.category].name
-        };
-    }
-
-    submit() {
-        this.props.render({data: this.buildRenderObject(this.props.getValues())});
-    }
-
-    render() {
-        return <div className="preview">
-            <div className="button-row">
-            <Button bsStyle="info" onClick={this.submit}>Load Preview</Button>
-            </div>
-            <PDFPreview />
-        </div>
-    }
-}
-
-const Preview = connect<{}, {}, UnconnectedPreviewProps>((state: Jason.State, ownProps: UnconnectedPreviewProps) => ({
-    getValues: () => ownProps.selector(state)
-}), {
-    render,
-})(UnconnectedPreview as any);
 
 
-export class TemplateViews extends React.PureComponent<{category: string, schema: string}> {
+
+export class TemplateViews extends React.PureComponent<{category: string, schema: string, showPreview : () => void, showComplete: () => void}> {
     render() {
         const { category, schema } = this.props;
         const name = `${category}.${schema}`;
         const type = templateSchemas[category].schemas[schema];
         return  <Grid fluid>
-        <Col md={6}>
-        <Tabs defaultActiveKey={2} id="tab-view">
+        <Col md={6} mdOffset={3}>
+        <Tabs defaultActiveKey={3} id="tab-view">
             <Tab eventKey={1} title="Schema">
                 <SchemaView schema={type.schema} />
             </Tab>
@@ -451,18 +385,16 @@ export class TemplateViews extends React.PureComponent<{category: string, schema
                 <FormView schema={type.schema} validate={type.validate} name={name} />
             </Tab>
             {type.schema.wizard && <Tab eventKey={3} title="Wizard">
-                <WizardView schema={type.schema} validate={type.validate} name={name} />
+                <WizardView schema={type.schema} validate={type.validate} name={name} showPreview={this.props.showPreview} showComplete={this.props.showComplete} />
             </Tab> }
         </Tabs>
         </Col>
-        <Col md={6}>
-            <Preview category={category} schemaName={schema} form={name} selector={getFormValues(name)}/>
-        </Col>
+
         </Grid>
     }
 }
 
-const InjectedTemplateViews = formValues<any>('category', 'schema')(TemplateViews);
+const InjectedTemplateViews = connect(undefined, { showPreview: () => showPreview({}), showComplete: () => showComplete({}) } )(formValues<any>('category', 'schema')(TemplateViews) as any);
 
 class RenderDateTimePicker extends React.PureComponent<WrappedFieldProps & {formatDate: string}> {
     render() {
@@ -481,6 +413,16 @@ class RenderDateTimePicker extends React.PureComponent<WrappedFieldProps & {form
             time={false}
             value={!value ? null : new Date(value)}
           />
+    }
+}
+
+
+
+class ToggleButtonField extends React.PureComponent<WrappedFieldProps> {
+    render() {
+        return <ToggleButtonGroup {...this.props.input}  type="radio">
+            { this.props.children }
+        </ToggleButtonGroup>
     }
 }
 
@@ -516,11 +458,12 @@ class DateField extends React.PureComponent<WrappedFieldProps> {
     }
 }
 
-const SelectFieldRow = FieldRow(SelectField);
-const TextFieldRow = FieldRow(TextField);
-const TextAreaFieldRow = FieldRow(TextAreaField);
-const DateFieldRow = FieldRow(DateField);
-const CheckboxFieldRow = FieldRow(CheckboxField);
+export const ToggleButtonFieldRow = FieldRow(ToggleButtonField);
+export const SelectFieldRow = FieldRow(SelectField);
+export const TextFieldRow = FieldRow(TextField);
+export const TextAreaFieldRow = FieldRow(TextAreaField);
+export const DateFieldRow = FieldRow(DateField);
+export const CheckboxFieldRow = FieldRow(CheckboxField);
 
 
 class SchemaField extends React.PureComponent<WrappedFieldProps & {category: string}> {
@@ -541,9 +484,10 @@ export class FormLoader extends React.PureComponent<InjectedFormProps> {
         return <div>
         <h1 className="text-center"><img src="logo.png"/></h1>
         <Grid>
+                <Col md={6} mdOffset={3}>
         <Form  horizontal>
             <FormGroup controlId="formControlsSelect">
-                <Col sm={2}>
+                    <Col sm={2}>
                     <ControlLabel>Category</ControlLabel>
                 </Col>
                 <Col sm={10}>
@@ -563,6 +507,7 @@ export class FormLoader extends React.PureComponent<InjectedFormProps> {
                 </Col>
             </FormGroup>
         </Form>
+        </Col>
     </Grid>
         <InjectedTemplateViews />
     </div>
