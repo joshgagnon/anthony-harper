@@ -324,6 +324,8 @@ class Errors extends React.PureComponent<{errors: any, name: string, values: any
 
 
     touchAll() {
+                    console.log(this.props.errors);
+
         const fields = getFieldsFromErrors(this.props.errors);
         this.props.touch(this.props.name, ...fields);
     }
@@ -398,6 +400,7 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
     }
 
     render() {
+        console.log(this.props.validatePages[this.state.step])
         return <div>
             <br/>
             <ProgressBar striped bsStyle="success"
@@ -442,12 +445,12 @@ export class TemplateViews extends React.PureComponent<{category: string, schema
         return  <Grid fluid>
         <Col md={6} mdOffset={3}>
         <Tabs defaultActiveKey={3} id="tab-view">
-            <Tab eventKey={1} title="Schema">
+            {/* <Tab eventKey={1} title="Schema">
                 <SchemaView schema={type.schema} />
-            </Tab>
-            <Tab eventKey={2} title="Form">
+            </Tab> */ }
+            { !type.schema.wizard && <Tab eventKey={2} title="Form">
                 <FormView schema={type.schema} validate={type.validate} name={name} />
-            </Tab>
+            </Tab> }
             {type.schema.wizard && <Tab eventKey={3} title="Wizard">
                 <WizardView
                 schema={type.schema}
