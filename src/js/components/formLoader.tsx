@@ -1,11 +1,11 @@
 import * as React from "react";
-import { reduxForm, InjectedFormProps, Field, WrappedFieldProps, formValues, FormSection, FieldArray, formValueSelector, getFormValues } from 'redux-form';
+import { reduxForm, InjectedFormProps, Field, WrappedFieldProps, formValues, FormSection, FieldArray, formValueSelector, getFormValues, initialize } from 'redux-form';
 import { connect } from 'react-redux';
 import templateSchemas from '../schemas';
 import { FormGroup, ControlLabel, FormControl, Form, Col, Grid, Tabs, Tab, Button, Glyphicon, ProgressBar, ToggleButtonGroup } from 'react-bootstrap';
 import { componentType, getKey, addItem, setDefaults, getValidate, controlStyle, formatString } from 'json-schemer';
 import FlipMove from 'react-flip-move';
-import { render, showPreview, showComplete } from '../actions';
+import { render, showPreview, showComplete, showConfirmation } from '../actions';
 import PDF from 'react-pdf-component/lib/react-pdf';
 import Loading from './loading';
 import * as DateTimePicker from 'react-widgets/lib/DateTimePicker'
@@ -232,7 +232,7 @@ function FieldRow(Component: any) : any {
                 <Col sm={3} className="text-right">
                     <ControlLabel>{ props.title }</ControlLabel>
                 </Col>
-                <Col sm={9}>
+                <Col sm={this.props.columnWidth || 7}>
                      <Component {...props} />
                     <FormControl.Feedback />
                 </Col>
@@ -302,6 +302,7 @@ interface WizardViewProps {
     validate: Jason.Validate,
     showPreview: () => void;
     showComplete: () => void;
+    reset: (name: string, values: any) => void;
 }
 
 
@@ -312,6 +313,7 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
         this.nextStep = this.nextStep.bind(this);
         this.prevStep = this.prevStep.bind(this);
         this.finish = this.finish.bind(this);
+        this.reset = this.reset.bind(this);
         this.state = {step: 0}
     }
 
@@ -339,6 +341,10 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
         }
     }
 
+    reset() {
+        this.props.reset(this.props.name, setDefaults(this.props.schema, {}, INITIAL_VALUES));
+    }
+
     render() {
         return <div>
             <br/>
@@ -354,10 +360,11 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
                 key={this.props.name}
                 validate={this.props.validate}
                 destroyOnUnmount={false}
-                initialValues={setDefaults(this.props.schema, {}, {})}
+                initialValues={setDefaults(this.props.schema, {}, INITIAL_VALUES)}
                 />
 
             <div className="button-row">
+                { <Button onClick={this.reset}>Reset</Button> }
                 { !this.firstStep() && <Button onClick={this.prevStep}>Back</Button> }
                 { !this.lastStep() && <Button bsStyle={'success'} onClick={this.nextStep}>Next</Button> }
                 { (this.lastStep() || true) && <Button bsStyle={'success'} onClick={this.finish}>Finish</Button> }
@@ -370,7 +377,7 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
 
 
 
-export class TemplateViews extends React.PureComponent<{category: string, schema: string, showPreview : () => void, showComplete: () => void}> {
+export class TemplateViews extends React.PureComponent<{category: string, schema: string, showPreview : () => void, showComplete: () => void, reset: (name: string, values: any) => void}> {
     render() {
         const { category, schema } = this.props;
         const name = `${category}.${schema}`;
@@ -385,7 +392,7 @@ export class TemplateViews extends React.PureComponent<{category: string, schema
                 <FormView schema={type.schema} validate={type.validate} name={name} />
             </Tab>
             {type.schema.wizard && <Tab eventKey={3} title="Wizard">
-                <WizardView schema={type.schema} validate={type.validate} name={name} showPreview={this.props.showPreview} showComplete={this.props.showComplete} />
+                <WizardView schema={type.schema} validate={type.validate} name={name} showPreview={this.props.showPreview} showComplete={this.props.showComplete} reset={this.props.reset}/>
             </Tab> }
         </Tabs>
         </Col>
@@ -394,7 +401,14 @@ export class TemplateViews extends React.PureComponent<{category: string, schema
     }
 }
 
-const InjectedTemplateViews = connect(undefined, { showPreview: () => showPreview({}), showComplete: () => showComplete({}) } )(formValues<any>('category', 'schema')(TemplateViews) as any);
+const InjectedTemplateViews = connect(undefined, {
+    showPreview: () => showPreview({}),
+    showComplete: () => showComplete({}),
+    reset: (formName: string, values: any) => showConfirmation({title: 'Reset Form',
+                                  message: 'Are you sure you wish to reset the form?',
+                                  rejectLabel: 'Cancel', acceptLabel: 'Reset',
+                                  acceptActions: [initialize(formName, values)]})
+  })(formValues<any>('category', 'schema')(TemplateViews) as any);
 
 class RenderDateTimePicker extends React.PureComponent<WrappedFieldProps & {formatDate: string}> {
     render() {

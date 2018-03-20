@@ -12,7 +12,7 @@
 
 "@types/node@*":
   version "9.4.7"
-  resolved "http://registry.npmjs.org/@types/node/-/node-9.4.7.tgz#57d81cd98719df2c9de118f2d5f3b1120dcd7275"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-9.4.7.tgz#57d81cd98719df2c9de118f2d5f3b1120dcd7275"
 
 "@types/react-bootstrap@^0.31.8":
   version "0.31.9"
@@ -22,7 +22,7 @@
 
 "@types/react-dom@^16.0.3":
   version "16.0.4"
-  resolved "http://registry.npmjs.org/@types/react-dom/-/react-dom-16.0.4.tgz#2e8fd45f5443780ed49bf2cdd9809e6091177a7d"
+  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-16.0.4.tgz#2e8fd45f5443780ed49bf2cdd9809e6091177a7d"
   dependencies:
     "@types/node" "*"
     "@types/react" "*"
@@ -180,8 +180,8 @@ ansi-styles@^3.2.1:
     color-convert "^1.9.0"
 
 "anthony-harper-templates@github:joshgagnon/anthony-harper-templates":
-  version "1.0.0"
-  resolved "https://codeload.github.com/joshgagnon/anthony-harper-templates/tar.gz/b2f5c5e9fec2119d14633ce153801b9dd038443c"
+  version "1.0.2"
+  resolved "https://codeload.github.com/joshgagnon/anthony-harper-templates/tar.gz/0458009331e07a295149091e6a529223457c6ad7"
 
 anymatch@^2.0.0:
   version "2.0.0"
@@ -2307,8 +2307,8 @@ html-entities@^1.2.0:
   resolved "https://registry.yarnpkg.com/html-entities/-/html-entities-1.2.1.tgz#0df29351f0721163515dfb9e5543e5f6eed5162f"
 
 html-minifier@^3.2.3:
-  version "3.5.11"
-  resolved "https://registry.yarnpkg.com/html-minifier/-/html-minifier-3.5.11.tgz#f248927f2e076733f58c136de0376553beb101f8"
+  version "3.5.12"
+  resolved "https://registry.yarnpkg.com/html-minifier/-/html-minifier-3.5.12.tgz#6bfad4d0327f5b8d2b62f5854654ac3703b9b031"
   dependencies:
     camel-case "3.0.x"
     clean-css "4.1.x"
@@ -5340,8 +5340,8 @@ ua-parser-js@^0.7.9:
   resolved "https://registry.yarnpkg.com/ua-parser-js/-/ua-parser-js-0.7.17.tgz#e9ec5f9498b9ec910e7ae3ac626a805c4d09ecac"
 
 uglify-js@3.3.x:
-  version "3.3.15"
-  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.3.15.tgz#5b8783b6856110d3a03a9b81e07324a3b925f2dd"
+  version "3.3.16"
+  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.3.16.tgz#23ba13efa27aa00885be7417819e8a9787f94028"
   dependencies:
     commander "~2.15.0"
     source-map "~0.6.1"

@@ -248,8 +248,8 @@ const ConnectedPreviewModal = connect(undefined, {
 export class FileFormat extends React.PureComponent<{}> {
     render() {
         return <Form  horizontal>
-         <Field title={'File Name'} name={'filename'} component={TextFieldRow} />
-           <Field title={'File Type'} name={'fileType'} component={ToggleButtonFieldRow} >
+         <Field title={'File Name'} name={'filename'} component={TextFieldRow}/>
+           <Field title={'File Type'} name={'fileType'} component={ToggleButtonFieldRow}  columnWidth={9}>
             <ToggleButton value="docx"><i className="fa fa-file-word-o"/> Word (.docx)</ToggleButton>
             <ToggleButton value="pdf"><i className="fa fa-file-pdf-o"/> PDF (.pdf)</ToggleButton>
             <ToggleButton value="odt"><i className="fa fa-file-text-o"/>  OpenDocument (.odt)</ToggleButton>

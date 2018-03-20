@@ -131,3 +131,18 @@ input.checkbox.form-control {
     }
 }
 
+form fieldset{
+    fieldset {
+        fieldset{
+
+        }
+    }
+
+    fieldset.list{
+        & > legend {
+                font-size: 1em;
+            text-align: center;
+                font-style: italic;
+        }
+    }
+}

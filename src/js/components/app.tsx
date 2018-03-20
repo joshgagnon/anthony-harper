@@ -11,7 +11,7 @@ export class App extends React.PureComponent<{}> {
     render() {
         return <div>
             <Header />
-            <FormLoader initialValues={{category: 'Anthony Harper', schema: 'AEC-250770-98-449-1 LOE 2018 for Catalex'}} />
+            <FormLoader initialValues={{category: 'Anthony Harper', schema: 'Letter of Engagement'}} />
             <Modals />
         </div>
 
