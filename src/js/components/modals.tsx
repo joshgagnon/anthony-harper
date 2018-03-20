@@ -179,7 +179,7 @@ const ConnectedConfirmationDialog = connect((state: Jason.State) => ({
 
 interface RestoreProps {
     handleClose: () => void;
-    setForm: (args: any) => void;
+    setForm: (name: string, args: any) => void;
 }
 
 export class Restore extends React.PureComponent<RestoreProps> {
@@ -195,7 +195,10 @@ export class Restore extends React.PureComponent<RestoreProps> {
     }
 
     handleRestore() {
-        this.props.setForm(JSON.parse(localStorage.getItem('saved')));
+        try{
+            const { name, values } = JSON.parse(localStorage.getItem('saved'));
+            this.props.setForm(name, values);
+        }catch(e){};
         localStorage.removeItem('saved');
         this.props.handleClose();
     }
@@ -207,7 +210,7 @@ export class Restore extends React.PureComponent<RestoreProps> {
                 </Modal.Header>
                 <Modal.Body>
                 <p>
-                    Would you like to restore your previous Court Cost's session?
+                    Would you like to restore your previous session?
                 </p>
                </Modal.Body>
                 <Modal.Footer>
@@ -221,7 +224,7 @@ export class Restore extends React.PureComponent<RestoreProps> {
 
 const ConnectedRestore = connect(undefined, {
     handleClose: hideRestore,
-    setForm: (args: any) => initialize('formLoader', args)
+    setForm: (name: string, args: any) => initialize(name, args)
 })(Restore as any)
 
 

@@ -1,4 +1,4 @@
-import { prepareSchema, getValidate } from 'json-schemer';
+import { prepareSchema, getValidate, getSubSchema } from 'json-schemer';
 import merge from 'deepmerge';
 const schemas = require.context('anthony-harper-templates/schemas');
 
@@ -9,9 +9,13 @@ function loadAll(context: any) : {[key: string] : any}{
             try{
                 const schema = prepareSchema(definitions, context(key)) as Jason.Schema;
                 const validate = getValidate(schema);
+                const validatePages = schema.wizard ? schema.wizard.steps.map((item: any, index: number) => {
+                    return getValidate(getSubSchema(schema, index));
+                }) : [];
                 acc[key.replace('./', '')] = {
                     schema,
-                    validate
+                    validate,
+                    validatePages
                 }
             }
             catch(e){

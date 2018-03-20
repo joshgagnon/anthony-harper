@@ -1,11 +1,11 @@
 import * as React from "react";
-import { reduxForm, InjectedFormProps, Field, WrappedFieldProps, formValues, FormSection, FieldArray, formValueSelector, getFormValues, initialize } from 'redux-form';
+import { reduxForm, InjectedFormProps, Field, WrappedFieldProps, formValues, FormSection, FieldArray, formValueSelector, getFormValues, initialize, touch, getFormSyncErrors, isDirty } from 'redux-form';
 import { connect } from 'react-redux';
 import templateSchemas from '../schemas';
 import { FormGroup, ControlLabel, FormControl, Form, Col, Grid, Tabs, Tab, Button, Glyphicon, ProgressBar, ToggleButtonGroup } from 'react-bootstrap';
-import { componentType, getKey, addItem, setDefaults, getValidate, controlStyle, formatString } from 'json-schemer';
+import { componentType, getKey, addItem, setDefaults, getValidate, controlStyle, formatString, getSubSchema, getFieldsFromErrors } from 'json-schemer';
 import FlipMove from 'react-flip-move';
-import { render, showPreview, showComplete, showConfirmation } from '../actions';
+import { render, showPreview, showComplete, showConfirmation, showRestore } from '../actions';
 import PDF from 'react-pdf-component/lib/react-pdf';
 import Loading from './loading';
 import * as DateTimePicker from 'react-widgets/lib/DateTimePicker'
@@ -283,23 +283,65 @@ class FormView extends React.PureComponent<{schema: Jason.Schema, name: string, 
     }
 }
 
-function getSubSchema(schema: Jason.Schema, stepIndex: number) : Jason.Schema {
-    const fields = schema.wizard.steps[stepIndex].items;
-    const properties = Object.keys(schema.properties).reduce((acc: any, key: string) => {
 
-        if(fields.indexOf(key) >= 0){
-            acc[key] = schema.properties[key];
+
+
+
+
+class Errors extends React.PureComponent<{errors: any, name: string, values: any, dirty: boolean, touch: (form: string, ...fields: string[]) => void, showRestore: () => void}>{
+    constructor(props: any) {
+        super(props);
+        this.navWillLeave = this.navWillLeave.bind(this);
+    }
+
+    navWillLeave() {
+        if(localStorage && this.props.dirty){
+            localStorage.setItem('saved', JSON.stringify({
+                values: this.props.values,
+                name: this.props.name
+            }));
+
         }
-        return acc;
-    }, {})
-    return {...schema, properties}
+    }
+
+    componentDidMount() {
+        window.addEventListener('beforeunload', this.navWillLeave);
+        if(localStorage.getItem('saved')){
+            try{
+                const state = JSON.parse(localStorage.getItem('saved'));
+                // if parses, a good start
+                this.props.showRestore();
+            }
+            catch(e){
+                localStorage.removeItem('saved');
+            }
+        }
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('beforeunload', this.navWillLeave);
+    }
+
+
+    touchAll() {
+        const fields = getFieldsFromErrors(this.props.errors);
+        this.props.touch(this.props.name, ...fields);
+    }
+    render() {
+        return false;
+    }
 }
 
+
+const ConnectedErrors = connect((state: Jason.State, ownProps: any) => ({
+    errors: getFormSyncErrors(ownProps.name)(state), values: getFormValues(ownProps.name)(state), dirty: isDirty(ownProps.name)(state)
+}), { touch, showRestore }, undefined, {withRef: true})(Errors as any);
 
 interface WizardViewProps {
     schema: Jason.Schema,
     name: string,
     validate: Jason.Validate,
+    validatePages: Jason.Validate[],
     showPreview: () => void;
     showComplete: () => void;
     reset: (name: string, values: any) => void;
@@ -325,14 +367,24 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
         return this.state.step === 0;
     }
 
+    validate() {
+        if(!(this.refs.form as any).valid){
+            ((this.refs.errors as any).getWrappedInstance() as any).touchAll(this.props.name);
+            return false;
+        }
+        return true;
+    }
+
     nextStep() {
-        if(!this.lastStep()){
+        if(this.validate() && !this.lastStep()){
             this.setState({step: this.state.step+1})
         }
     }
 
     finish() {
-        this.props.showComplete()
+        if(this.validate()){
+            this.props.showComplete();
+        }
     }
 
     prevStep() {
@@ -355,14 +407,15 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
                 />
 
             <InjectedRenderForm
+                ref="form"
                 schema={getSubSchema(this.props.schema, this.state.step)}
                 form={this.props.name}
                 key={this.props.name}
-                validate={this.props.validate}
+                validate={this.props.validatePages[this.state.step]}
                 destroyOnUnmount={false}
                 initialValues={setDefaults(this.props.schema, {}, INITIAL_VALUES)}
                 />
-
+            <ConnectedErrors ref="errors" name={this.props.name} />
             <div className="button-row">
                 { <Button onClick={this.reset}>Reset</Button> }
                 { !this.firstStep() && <Button onClick={this.prevStep}>Back</Button> }
@@ -377,7 +430,11 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
 
 
 
-export class TemplateViews extends React.PureComponent<{category: string, schema: string, showPreview : () => void, showComplete: () => void, reset: (name: string, values: any) => void}> {
+export class TemplateViews extends React.PureComponent<{category: string, schema: string,
+    showPreview : () => void,
+    showComplete: () => void,
+    reset: (name: string, values: any) => void
+}> {
     render() {
         const { category, schema } = this.props;
         const name = `${category}.${schema}`;
@@ -392,7 +449,14 @@ export class TemplateViews extends React.PureComponent<{category: string, schema
                 <FormView schema={type.schema} validate={type.validate} name={name} />
             </Tab>
             {type.schema.wizard && <Tab eventKey={3} title="Wizard">
-                <WizardView schema={type.schema} validate={type.validate} name={name} showPreview={this.props.showPreview} showComplete={this.props.showComplete} reset={this.props.reset}/>
+                <WizardView
+                schema={type.schema}
+                validate={type.validate}
+                validatePages={type.validatePages}
+                name={name}
+                showPreview={this.props.showPreview}
+                showComplete={this.props.showComplete}
+                reset={this.props.reset}/>
             </Tab> }
         </Tabs>
         </Col>
@@ -409,6 +473,7 @@ const InjectedTemplateViews = connect(undefined, {
                                   rejectLabel: 'Cancel', acceptLabel: 'Reset',
                                   acceptActions: [initialize(formName, values)]})
   })(formValues<any>('category', 'schema')(TemplateViews) as any);
+
 
 class RenderDateTimePicker extends React.PureComponent<WrappedFieldProps & {formatDate: string}> {
     render() {

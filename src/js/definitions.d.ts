@@ -56,7 +56,8 @@ declare namespace Jason {
             name : string,
             schemas: {[schema: string] : {
                 schema: Schema,
-                validate: Validate
+                validate: Validate,
+                validatePages: Validate[]
                 }
             }
         }
@@ -212,7 +213,9 @@ declare module 'json-schemer' {
     export function controlStyle(field: any): string;
     export function formatString(...args: (string | number)[]): string;
     export function setDefaults(schema: Jason.Schema, context: any, values: any): any;
-    export function getValidate(schema: Jason.Schema) : (values: any) => any
+    export function getValidate(schema: Jason.Schema) : (values: any) => any;
+    export function getSubSchema(schema: Jason.Schema, stepIndex: number) : Jason.Schema;
+    export function getFieldsFromErrors(errors: any) : string[];
 }
 
 declare module 'deepmerge' {
