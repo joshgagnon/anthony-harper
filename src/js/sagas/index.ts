@@ -4,7 +4,7 @@ import * as Axios from 'axios';
 import { initialize } from 'redux-form';
 import axios from 'axios';
 import { updateRender, updateSavedList, requestSavedList, hideComplete } from '../actions';
-import { saveAs } from 'file-saver';
+import Filesaver from 'file-saver';
 
 
 export default function *rootSaga(): any {
@@ -58,9 +58,10 @@ function *downloadSaga() {
             var blob = new Blob([data], {type: response.headers['content-type']});
             const disposition = response.headers['content-disposition'];
             const filename = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition)[1].replace(/"/g, '');
-            saveAs(blob, filename);
-                    yield put(hideComplete({}));
+            (Filesaver as any)(blob, filename);
+            yield put(hideComplete({}));
         } catch(e) {
+            debugger
             yield put(updateRender({
                 downloadStatus: Jason.DownloadStatus.Failed,
             }));
