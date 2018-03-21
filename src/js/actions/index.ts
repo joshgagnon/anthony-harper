@@ -143,3 +143,11 @@ export function deleteState(payload: Jason.Actions.DeleteStatePayload): Jason.Ac
         payload
     };
 }
+
+
+export function setWizardPage(payload: Jason.Actions.SetWizardPagePayload) : Jason.Actions.SetWizardPage {
+    return {
+        type: Jason.Actions.Types.SET_WIZARD_PAGE,
+        payload
+    }
+}

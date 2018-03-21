@@ -76,10 +76,17 @@ declare namespace Jason {
 
     }
 
+    interface Wizard {
+        [name: string]: {
+            page: number
+        }
+    }
+
     interface State {
         document: DocumentState,
         dialogs: DialogState,
         saved: Saved,
+        wizard: Wizard
     }
 }
 
@@ -106,7 +113,8 @@ declare namespace Jason.Actions {
         HIDE_COMPLETE = 'HIDE_COMPLETE',
         SHOW_PREVIEW = 'SHOW_PREVIEW',
         HIDE_PREVIEW = 'HIDE_PREVIEW',
-        DOWNLOAD = 'DOWNLOAD'
+        DOWNLOAD = 'DOWNLOAD',
+        SET_WIZARD_PAGE = 'SET_WIZARD_PAGE'
 
     }
 
@@ -177,6 +185,11 @@ declare namespace Jason.Actions {
     interface HideCompletePayload {
 
     }
+
+    interface SetWizardPagePayload {
+        name: string;
+        page: number;
+    }
     interface UpdateRender extends ActionCreator<UpdateRenderPayload> {}
 
     interface RequestSavedList extends ActionCreator<RequestSavedListPayload> {}
@@ -197,6 +210,7 @@ declare namespace Jason.Actions {
 
     interface ShowComplete extends ActionCreator<ShowCompletePayload> {}
     interface HideComplete extends ActionCreator<HideCompletePayload> {}
+    interface SetWizardPage extends ActionCreator<SetWizardPagePayload> {}
 }
 
 
@@ -210,6 +224,7 @@ declare module 'json-schemer' {
     export function componentType(object: any): string;
     export function getKey(): string;
     export function addItem(field: any): string;
+    export function suggestions(field: any): any;
     export function controlStyle(field: any): string;
     export function formatString(...args: (string | number)[]): string;
     export function setDefaults(schema: Jason.Schema, context: any, values: any): any;

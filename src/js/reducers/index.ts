@@ -50,12 +50,22 @@ const saved = (state: Jason.Saved = {list: [] as [Jason.SavedItemSummary]}, acti
     return state;
 }
 
+const wizard = (state: Jason.Wizard = {}, action: any) => {
+    switch(action.type){
+        case Jason.Actions.Types.SET_WIZARD_PAGE:
+            return {...state, [action.payload.name]: {page: action.payload.page}}
+    }
+    return state;
+}
+
+
 const appReducer: Reducer<any> = combineReducers<any>({
     routing,
     form,
     dialogs,
     saved,
-    document
+    document,
+    wizard
 });
 
 

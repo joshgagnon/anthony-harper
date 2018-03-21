@@ -2,10 +2,10 @@ import * as React from "react";
 import { reduxForm, InjectedFormProps, Field, WrappedFieldProps, formValues, FormSection, FieldArray, formValueSelector, getFormValues, initialize, touch, getFormSyncErrors, isDirty } from 'redux-form';
 import { connect } from 'react-redux';
 import templateSchemas from '../schemas';
-import { FormGroup, ControlLabel, FormControl, Form, Col, Grid, Tabs, Tab, Button, Glyphicon, ProgressBar, ToggleButtonGroup } from 'react-bootstrap';
-import { componentType, getKey, addItem, setDefaults, getValidate, controlStyle, formatString, getSubSchema, getFieldsFromErrors } from 'json-schemer';
+import { FormGroup, ControlLabel, FormControl, Form, Col, Grid, Tabs, Tab, Button, Glyphicon, ProgressBar, ToggleButtonGroup, DropdownButton, MenuItem, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { componentType, getKey, addItem, setDefaults, getValidate, controlStyle, formatString, getSubSchema, getFieldsFromErrors, suggestions } from 'json-schemer';
 import FlipMove from 'react-flip-move';
-import { render, showPreview, showComplete, showConfirmation, showRestore } from '../actions';
+import { render, showPreview, showComplete, showConfirmation, showRestore, setWizardPage } from '../actions';
 import PDF from 'react-pdf-component/lib/react-pdf';
 import Loading from './loading';
 import * as DateTimePicker from 'react-widgets/lib/DateTimePicker'
@@ -188,7 +188,28 @@ class ListItemControls extends React.PureComponent<any> {
 }
 
 
+
 class FieldsArray extends React.PureComponent<any> {
+    add() {
+         const { fields, field } = this.props;
+        const suggestionList = suggestions(field);
+        if(suggestionList){
+            return <DropdownButton title={ addItem(field) } id={fields.name}>
+                { suggestionList.map((sug: any, index: number) => {
+                    return <OverlayTrigger key={index} overlay={<Tooltip id={sug.title}>{sug.title}</Tooltip>}>
+                        <MenuItem eventKey={index}  onSelect={() => fields.push({_keyIndex: getKey(), ...sug.value})}>
+                          { sug.title }
+                    </MenuItem>
+                        </OverlayTrigger>
+                }) }
+                 <MenuItem divider />
+                 <MenuItem eventKey={suggestionList.length} onSelect={() => fields.push({_keyIndex: getKey()})}>Custom</MenuItem>
+            </DropdownButton>
+        }
+        return <Button onClick={() => fields.push({_keyIndex: getKey()})}>
+                 { addItem(field) }
+              </Button>
+    }
     render() {
         const { fields, field, title, selector } = this.props;
         const inline = controlStyle(field) === 'inline';
@@ -205,9 +226,7 @@ class FieldsArray extends React.PureComponent<any> {
             }) }
             </FlipMove>
             <div className="text-center">
-                <Button onClick={() => fields.push({_keyIndex: getKey()})}>
-                    { addItem(field) }
-              </Button>
+                { this.add() }
           </div>
             </fieldset>
         }
@@ -284,18 +303,16 @@ class FormView extends React.PureComponent<{schema: Jason.Schema, name: string, 
 }
 
 
-
-
-
-
-class Errors extends React.PureComponent<{errors: any, name: string, values: any, dirty: boolean, touch: (form: string, ...fields: string[]) => void, showRestore: () => void}>{
+class Errors extends React.PureComponent<{errors: any, name: string, values: any, dirty: boolean,
+    touch: (form: string, ...fields: string[]) => void,
+    showRestore: () => void}>{
     constructor(props: any) {
         super(props);
         this.navWillLeave = this.navWillLeave.bind(this);
     }
 
     navWillLeave() {
-        if(localStorage && this.props.dirty){
+        if(localStorage){
             localStorage.setItem('saved', JSON.stringify({
                 values: this.props.values,
                 name: this.props.name
@@ -324,8 +341,6 @@ class Errors extends React.PureComponent<{errors: any, name: string, values: any
 
 
     touchAll() {
-                    console.log(this.props.errors);
-
         const fields = getFieldsFromErrors(this.props.errors);
         this.props.touch(this.props.name, ...fields);
     }
@@ -335,9 +350,10 @@ class Errors extends React.PureComponent<{errors: any, name: string, values: any
 }
 
 
-const ConnectedErrors = connect((state: Jason.State, ownProps: any) => ({
-    errors: getFormSyncErrors(ownProps.name)(state), values: getFormValues(ownProps.name)(state), dirty: isDirty(ownProps.name)(state)
-}), { touch, showRestore }, undefined, {withRef: true})(Errors as any);
+const ConnectedErrors = connect((state: Jason.State, ownProps: any) => {
+    const values = getFormValues(ownProps.name)(state)
+    return {errors: getFormSyncErrors(ownProps.name)(state), values, dirty: isDirty(ownProps.name)(state)}
+}, { touch, showRestore }, undefined, {withRef: true})(Errors as any);
 
 interface WizardViewProps {
     schema: Jason.Schema,
@@ -347,10 +363,12 @@ interface WizardViewProps {
     showPreview: () => void;
     showComplete: () => void;
     reset: (name: string, values: any) => void;
+    setWizardPage: (page: number) => void;
+    page: number
 }
 
 
-class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
+class WizardView extends React.PureComponent<WizardViewProps> {
 
     constructor(props: WizardViewProps) {
         super(props);
@@ -358,20 +376,19 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
         this.prevStep = this.prevStep.bind(this);
         this.finish = this.finish.bind(this);
         this.reset = this.reset.bind(this);
-        this.state = {step: 0}
     }
 
     lastStep() {
-        return this.state.step === this.props.schema.wizard.steps.length - 1;
+        return this.props.page === this.props.schema.wizard.steps.length - 1;
     }
 
     firstStep() {
-        return this.state.step === 0;
+        return this.props.page === 0;
     }
 
     validate() {
         if(!(this.refs.form as any).valid){
-            ((this.refs.errors as any).getWrappedInstance() as any).touchAll(this.props.name);
+            ((this.refs.errors as any).getWrappedInstance() as Errors).touchAll();
             return false;
         }
         return true;
@@ -379,7 +396,7 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
 
     nextStep() {
         if(this.validate() && !this.lastStep()){
-            this.setState({step: this.state.step+1})
+            this.props.setWizardPage(this.props.page+1);
         }
     }
 
@@ -391,7 +408,7 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
 
     prevStep() {
         if(!this.firstStep()){
-            this.setState({step: this.state.step-1})
+            this.props.setWizardPage(this.props.page-1)
         }
     }
 
@@ -400,25 +417,25 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
     }
 
     render() {
-        console.log(this.props.validatePages[this.state.step])
         return <div>
             <br/>
             <ProgressBar striped bsStyle="success"
-                now={(this.state.step+1)/(this.props.schema.wizard.steps.length) * 100}
-                label={`Step ${this.state.step+1} of ${this.props.schema.wizard.steps.length}`}
+                now={(this.props.page+1)/(this.props.schema.wizard.steps.length) * 100}
+                label={`Step ${this.props.page+1} of ${this.props.schema.wizard.steps.length}`}
 
                 />
 
             <InjectedRenderForm
                 ref="form"
-                schema={getSubSchema(this.props.schema, this.state.step)}
+                schema={getSubSchema(this.props.schema, this.props.page)}
                 form={this.props.name}
-                key={this.props.name}
-                validate={this.props.validatePages[this.state.step]}
+                key={`${this.props.name}-${this.props.page}`}
+                validate={this.props.validatePages[this.props.page]}
                 destroyOnUnmount={false}
+                forceUnregisterOnUnmount={true}
                 initialValues={setDefaults(this.props.schema, {}, INITIAL_VALUES)}
                 />
-            <ConnectedErrors ref="errors" name={this.props.name} />
+            <ConnectedErrors ref="errors" name={this.props.name} key={this.props.page} />
             <div className="button-row">
                 { <Button onClick={this.reset}>Reset</Button> }
                 { !this.firstStep() && <Button onClick={this.prevStep}>Back</Button> }
@@ -430,6 +447,11 @@ class WizardView extends React.PureComponent<WizardViewProps, {step: number}> {
     }
 }
 
+const ConnectedWizardView = connect((state: Jason.State, ownProps: any) => ({
+    page: (state.wizard[ownProps.name] || {page: 0}).page
+}), (dispatch, ownProps) => ({
+    setWizardPage: (page: number) => dispatch(setWizardPage({name: ownProps.name, page}))
+}))(WizardView as any);
 
 
 
@@ -452,7 +474,7 @@ export class TemplateViews extends React.PureComponent<{category: string, schema
                 <FormView schema={type.schema} validate={type.validate} name={name} />
             </Tab> }
             {type.schema.wizard && <Tab eventKey={3} title="Wizard">
-                <WizardView
+                <ConnectedWizardView
                 schema={type.schema}
                 validate={type.validate}
                 validatePages={type.validatePages}
@@ -474,7 +496,7 @@ const InjectedTemplateViews = connect(undefined, {
     reset: (formName: string, values: any) => showConfirmation({title: 'Reset Form',
                                   message: 'Are you sure you wish to reset the form?',
                                   rejectLabel: 'Cancel', acceptLabel: 'Reset',
-                                  acceptActions: [initialize(formName, values)]})
+                                  acceptActions: [initialize(formName, values), setWizardPage({name: formName, page: 0})]})
   })(formValues<any>('category', 'schema')(TemplateViews) as any);
 
 
